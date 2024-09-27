@@ -39,6 +39,7 @@ else
     HOME_DIR=$HOME
 fi
 
+START_DIR="HOME_DIR/dirBrain"
 SYNC_DIR="$HOME_DIR/dirBrains"
 SYNCTHING_CONFIG_DIR="$HOME_DIR/.config/syncthing"
 DEVICE_ID_FILE="$HOME_DIR/.syncthing_device_id"
@@ -406,4 +407,4 @@ print_color $YELLOW "You can easily copy it from this file when setting up other
 
 # Start Syncthing
 print_color $YELLOW "\nStarting Syncthing..."
-bash "$SYNC_DIR/start.sh"
+bash "$START_DIR/start.sh"
