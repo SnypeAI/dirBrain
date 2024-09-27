@@ -31,6 +31,11 @@ find_syncthing() {
     fi
 }
 
+# Function to check if Syncthing is already running
+is_syncthing_running() {
+    pgrep -x syncthing >/dev/null
+}
+
 # Find Syncthing executable
 SYNCTHING_PATH=$(find_syncthing)
 
@@ -39,9 +44,25 @@ if [ -z "$SYNCTHING_PATH" ]; then
     exit 1
 fi
 
+# Check if Syncthing is already running
+if is_syncthing_running; then
+    print_color $YELLOW "Syncthing is already running. Stopping the existing instance..."
+    pkill syncthing
+    sleep 2
+fi
+
 # Start Syncthing
 print_color $YELLOW "Starting Syncthing..."
-"$SYNCTHING_PATH" -no-browser &
+"$SYNCTHING_PATH" -no-browser -no-restart -logflags=0 &
 
-print_color $GREEN "Syncthing started. Process ID: $!"
-print_color $YELLOW "To stop Syncthing, use: kill $!"
+# Wait for Syncthing to start
+sleep 5
+
+# Check if Syncthing started successfully
+if is_syncthing_running; then
+    PID=$(pgrep syncthing)
+    print_color $GREEN "Syncthing started successfully. Process ID: $PID"
+    print_color $YELLOW "To stop Syncthing, use: kill $PID"
+else
+    print_color $RED "Failed to start Syncthing. Please check the logs for more information."
+fi

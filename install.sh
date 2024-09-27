@@ -91,6 +91,7 @@ install_syncthing() {
 configure_syncthing() {
     # Create sync directory
     mkdir -p "$SYNC_DIR"
+    touch "$SYNC_DIR/.stfolder"
 
     # Stop any running Syncthing instance
     if [[ "$OSTYPE" == "darwin"* ]]; then
