@@ -39,7 +39,7 @@ else
     HOME_DIR=$HOME
 fi
 
-SYNC_DIR="$HOME_DIR/dirBrain"
+SYNC_DIR="$HOME_DIR/dirBrains"
 SYNCTHING_CONFIG_DIR="$HOME_DIR/.config/syncthing"
 DEVICE_ID_FILE="$HOME_DIR/.syncthing_device_id"
 KNOWN_DEVICES_FILE="$SYNC_DIR/.known_devices"
@@ -111,7 +111,7 @@ configure_syncthing() {
     
     xmlstarlet ed -L \
         -s "/configuration" -t elem -n "folder" \
-        -i "/configuration/folder[last()]" -t attr -n "id" -v "dirBrain" \
+        -i "/configuration/folder[last()]" -t attr -n "id" -v "dirBrains" \
         -i "/configuration/folder[last()]" -t attr -n "path" -v "$SYNC_DIR" \
         -i "/configuration/folder[last()]" -t attr -n "type" -v "sendreceive" \
         -i "/configuration/folder[last()]" -t attr -n "rescanIntervalS" -v "30" \
@@ -233,8 +233,8 @@ add_known_device() {
         -i "/configuration/device[last()]" -t attr -n "name" -v "$device_name" \
         -s "/configuration/device[last()]" -t elem -n "address" -v "dynamic" \
         -s "/configuration/device[last()]" -t elem -n "autoAcceptFolders" -v "false" \
-        -s "/configuration/folder[@id='dirBrain']" -t elem -n "device" -v "" \
-        -i "/configuration/folder[@id='dirBrain']/device[last()]" -t attr -n "id" -v "$device_id" \
+        -s "/configuration/folder[@id='dirBrains']" -t elem -n "device" -v "" \
+        -i "/configuration/folder[@id='dirBrains']/device[last()]" -t attr -n "id" -v "$device_id" \
         "$SYNCTHING_CONFIG_DIR/config.xml"
 }
 
