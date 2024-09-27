@@ -117,7 +117,7 @@ configure_syncthing() {
         -i "/configuration/folder[last()]" -t attr -n "rescanIntervalS" -v "30" \
         -i "/configuration/folder[last()]" -t attr -n "fsWatcherEnabled" -v "true" \
         -i "/configuration/folder[last()]" -t attr -n "fsWatcherDelayS" -v "10" \
-        -d "/configuration/gui" \
+        -u "/configuration/gui/address" -v "127.0.0.1:8384" \
         -u "/configuration/options/globalAnnounceEnabled" -v "false" \
         -u "/configuration/options/localAnnounceEnabled" -v "false" \
         -u "/configuration/options/relaysEnabled" -v "false" \
