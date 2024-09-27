@@ -406,4 +406,4 @@ print_color $YELLOW "You can easily copy it from this file when setting up other
 
 # Start Syncthing
 print_color $YELLOW "\nStarting Syncthing..."
-bash "$HOME_DIR/start.sh"
+bash "$SYNC_DIR/start.sh"
