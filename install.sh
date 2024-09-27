@@ -1,10 +1,15 @@
 #!/bin/bash
 
 # Universal Secure Self-Updating Syncthing Auto-Setup Script
-# This script automatically installs, configures Syncthing, and maintains a shared list of all devices
-# It works on Linux, macOS, and Windows (via WSL or Git Bash), and supports both root and non-root users
 
 set -e
+
+# ANSI color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
 # Determine OS and set appropriate commands
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -34,10 +39,18 @@ else
     HOME_DIR=$HOME
 fi
 
-SYNC_DIR="$HOME_DIR/dirBrains"
+SYNC_DIR="$HOME_DIR/dirBrain"
 SYNCTHING_CONFIG_DIR="$HOME_DIR/.config/syncthing"
 DEVICE_ID_FILE="$HOME_DIR/.syncthing_device_id"
 KNOWN_DEVICES_FILE="$SYNC_DIR/.known_devices"
+CONFIG_SAVE_FILE="$HOME_DIR/.syncthing_setup_config"
+
+# Function to print colored output
+print_color() {
+    local color=$1
+    local message=$2
+    echo -e "${color}${message}${NC}"
+}
 
 # Function to check if a command exists
 command_exists() {
@@ -54,6 +67,7 @@ generate_secure_device_name() {
 
 # Install Syncthing
 install_syncthing() {
+    print_color $BLUE "Installing Syncthing..."
     if command_exists syncthing; then
         echo "Syncthing is already installed. Updating..."
         $SUDO_CMD $UPDATE_CMD
@@ -69,6 +83,7 @@ install_syncthing() {
         echo "Installing xmlstarlet..."
         $SUDO_CMD $INSTALL_CMD xmlstarlet
     fi
+    print_color $GREEN "Syncthing installed successfully."
 }
 
 # Configure Syncthing
@@ -96,7 +111,7 @@ configure_syncthing() {
     
     xmlstarlet ed -L \
         -s "/configuration" -t elem -n "folder" \
-        -i "/configuration/folder[last()]" -t attr -n "id" -v "dirBrains" \
+        -i "/configuration/folder[last()]" -t attr -n "id" -v "dirBrain" \
         -i "/configuration/folder[last()]" -t attr -n "path" -v "$SYNC_DIR" \
         -i "/configuration/folder[last()]" -t attr -n "type" -v "sendreceive" \
         -i "/configuration/folder[last()]" -t attr -n "rescanIntervalS" -v "30" \
@@ -115,11 +130,13 @@ configure_syncthing() {
     DEVICE_ID=$(syncthing -device-id)
     echo "$DEVICE_ID" > "$DEVICE_ID_FILE"
 
-    echo "Syncthing configured with device ID: $DEVICE_ID"
-    echo "Device Name: $DEVICE_NAME"
+    # Create .known_devices file
+    touch "$KNOWN_DEVICES_FILE"
+    echo "# Syncthing Known Devices" > "$KNOWN_DEVICES_FILE"
+    echo "$DEVICE_ID:$DEVICE_NAME" >> "$KNOWN_DEVICES_FILE"
 
-    # Add this device to the known devices file
-    add_device_to_known_devices "$DEVICE_ID" "$DEVICE_NAME"
+    print_color $GREEN "Syncthing configured with device ID: $DEVICE_ID"
+    print_color $GREEN "Device Name: $DEVICE_NAME"
 }
 
 # Setup auto-start
@@ -216,8 +233,8 @@ add_known_device() {
         -i "/configuration/device[last()]" -t attr -n "name" -v "$device_name" \
         -s "/configuration/device[last()]" -t elem -n "address" -v "dynamic" \
         -s "/configuration/device[last()]" -t elem -n "autoAcceptFolders" -v "false" \
-        -s "/configuration/folder[@id='dirBrains']" -t elem -n "device" -v "" \
-        -i "/configuration/folder[@id='dirBrains']/device[last()]" -t attr -n "id" -v "$device_id" \
+        -s "/configuration/folder[@id='dirBrain']" -t elem -n "device" -v "" \
+        -i "/configuration/folder[@id='dirBrain']/device[last()]" -t attr -n "id" -v "$device_id" \
         "$SYNCTHING_CONFIG_DIR/config.xml"
 }
 
@@ -249,29 +266,40 @@ sync_known_devices() {
     fi
 }
 
+save_config_info() {
+    cat > "$CONFIG_SAVE_FILE" <<EOL
+SYNC_DIR="$SYNC_DIR"
+SYNCTHING_CONFIG_DIR="$SYNCTHING_CONFIG_DIR"
+DEVICE_ID_FILE="$DEVICE_ID_FILE"
+KNOWN_DEVICES_FILE="$KNOWN_DEVICES_FILE"
+EOL
+}
+
+save_config_info
+
 # Main execution
+clear 
+print_color $YELLOW "Starting Syncthing Auto-Setup..."
+
 install_syncthing
 configure_syncthing
 setup_autostart
 sync_known_devices
 
-echo "Syncthing setup complete. The sync directory is: $SYNC_DIR"
-echo "Your device ID is: $(cat $DEVICE_ID_FILE)"
-echo "Known devices have been automatically added to your Syncthing configuration."
-echo "The list of all known devices is maintained in $KNOWN_DEVICES_FILE"
-echo "To add more devices, run this script on other machines."
+clear 
 
-# Start Syncthing
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    launchctl start com.github.syncthing.syncthing
-elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    if [ "$CURRENT_USER" = "root" ]; then
-        $SUDO_CMD systemctl start syncthing.service
-    else
-        $SUDO_CMD systemctl start syncthing@$CURRENT_USER.service
-    fi
-else
-    echo "Please start Syncthing manually or reboot your system."
-fi
+print_color $GREEN "\n✅ Syncthing setup complete!"
+print_color $BLUE "\n📁 Your sync directory is: $SYNC_DIR"
+print_color $BLUE "🆔 Your device ID is: $(cat $DEVICE_ID_FILE)"
+print_color $BLUE "📝 Known devices file: $KNOWN_DEVICES_FILE"
 
-echo "Syncthing should now be running. You may need to reboot your system for all changes to take effect."
+print_color $YELLOW "\n📌 Next steps:"
+echo "1. Copy this script to your other devices."
+echo "2. Run the script on each device you want to sync."
+echo "3. After running on all devices, edit $KNOWN_DEVICES_FILE on each device:"
+echo "   - Add the Device IDs and names of all other devices."
+echo "   - Format: DEVICE_ID:DEVICE_NAME (one per line)"
+echo "4. Restart Syncthing on all devices to apply changes."
+
+print_color $GREEN "\nSyncthing is now running. Your files will sync automatically."
+print_color $YELLOW "For more information, visit: https://docs.syncthing.net/"
