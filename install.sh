@@ -348,7 +348,7 @@ restart_syncthing
 print_color \$GREEN "Syncthing configuration updated and service restarted."
 print_color \$YELLOW "Your devices should now be connected. Check Syncthing logs for any issues."
 EOL
-chmod +x "$HOME_DIR/updateDevices.sh"
+    chmod +x "$HOME_DIR/updateDevices.sh"
     print_color $BLUE "Update script created: $HOME_DIR/updateDevices.sh"
 }
 
@@ -403,3 +403,7 @@ print_color $YELLOW "For more information, visit: https://docs.syncthing.net/"
 echo "$DEVICE_KEY" > "$HOME_DIR/.syncthing_device_key"
 print_color $BLUE "\nYour device key has been saved to: $HOME_DIR/.syncthing_device_key"
 print_color $YELLOW "You can easily copy it from this file when setting up other devices."
+
+# Start Syncthing
+print_color $YELLOW "\nStarting Syncthing..."
+bash "$HOME_DIR/start_syncthing.sh"
