@@ -39,7 +39,7 @@ else
     HOME_DIR=$HOME
 fi
 
-START_DIR="HOME_DIR/dirBrain"
+START_DIR="$HOME_DIR/dirBrain"
 SYNC_DIR="$HOME_DIR/dirBrains"
 SYNCTHING_CONFIG_DIR="$HOME_DIR/.config/syncthing"
 DEVICE_ID_FILE="$HOME_DIR/.syncthing_device_id"
