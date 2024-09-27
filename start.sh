@@ -36,6 +36,15 @@ is_syncthing_running() {
     pgrep -x syncthing >/dev/null
 }
 
+# Function to get an available port
+get_available_port() {
+    local port=8384
+    while nc -z localhost $port >/dev/null 2>&1; do
+        ((port++))
+    done
+    echo $port
+}
+
 # Find Syncthing executable
 SYNCTHING_PATH=$(find_syncthing)
 
@@ -51,9 +60,12 @@ if is_syncthing_running; then
     sleep 2
 fi
 
+# Get an available port for the GUI
+GUI_PORT=$(get_available_port)
+
 # Start Syncthing
 print_color $YELLOW "Starting Syncthing..."
-"$SYNCTHING_PATH" -no-browser -no-restart -logflags=0 &
+"$SYNCTHING_PATH" -no-browser -gui-address="127.0.0.1:$GUI_PORT" &
 
 # Wait for Syncthing to start
 sleep 5
@@ -63,6 +75,7 @@ if is_syncthing_running; then
     PID=$(pgrep syncthing)
     print_color $GREEN "Syncthing started successfully. Process ID: $PID"
     print_color $YELLOW "To stop Syncthing, use: kill $PID"
+    print_color $GREEN "GUI is accessible at: http://127.0.0.1:$GUI_PORT"
 else
     print_color $RED "Failed to start Syncthing. Please check the logs for more information."
 fi

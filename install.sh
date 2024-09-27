@@ -406,6 +406,12 @@ echo "$DEVICE_KEY" > "$HOME_DIR/.syncthing_device_key"
 print_color $BLUE "\nYour device key has been saved to: $HOME_DIR/.syncthing_device_key"
 print_color $YELLOW "You can easily copy it from this file when setting up other devices."
 
+# Create start script
+cat > "$START_DIR/start_syncthing.sh" <<EOL
+$(cat "$0" | sed -n '/^#!/,$p')
+EOL
+chmod +x "$START_DIR/start.sh"
+
 # Start Syncthing
 print_color $YELLOW "\nStarting Syncthing..."
 bash "$START_DIR/start.sh"
