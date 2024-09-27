@@ -275,7 +275,82 @@ KNOWN_DEVICES_FILE="$KNOWN_DEVICES_FILE"
 EOL
 }
 
-save_config_info
+create_update_script() {
+    cat > "$HOME_DIR/updateDevices.sh" <<EOL
+#!/bin/bash
+
+# updateDevices.sh - Script to update Syncthing configuration and restart the service
+
+set -e
+
+# ANSI color codes
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_color() {
+    local color=\$1
+    local message=\$2
+    echo -e "\${color}\${message}\${NC}"
+}
+
+# Load configuration
+CONFIG_SAVE_FILE="$HOME_DIR/.syncthing_setup_config"
+if [ -f "\$CONFIG_SAVE_FILE" ]; then
+    source "\$CONFIG_SAVE_FILE"
+else
+    print_color \$YELLOW "Configuration file not found. Please run the installation script first."
+    exit 1
+fi
+
+# Function to add known devices to Syncthing config
+update_known_devices() {
+    print_color \$BLUE "Updating known devices in Syncthing configuration..."
+    while IFS=':' read -r device_id device_name; do
+        if [[ "\$device_id" != "#"* ]] && ! grep -q "\$device_id" "\$SYNCTHING_CONFIG_DIR/config.xml"; then
+            xmlstarlet ed -L \
+                -s "/configuration" -t elem -n "device" \
+                -i "/configuration/device[last()]" -t attr -n "id" -v "\$device_id" \
+                -i "/configuration/device[last()]" -t attr -n "name" -v "\$device_name" \
+                -s "/configuration/device[last()]" -t elem -n "address" -v "dynamic" \
+                -s "/configuration/device[last()]" -t elem -n "autoAcceptFolders" -v "false" \
+                -s "/configuration/folder[@id='dirBrains']" -t elem -n "device" -v "" \
+                -i "/configuration/folder[@id='dirBrains']/device[last()]" -t attr -n "id" -v "\$device_id" \
+                "\$SYNCTHING_CONFIG_DIR/config.xml"
+            print_color \$GREEN "Added device: \$device_name (\$device_id)"
+        fi
+    done < "\$KNOWN_DEVICES_FILE"
+}
+
+# Function to restart Syncthing
+restart_syncthing() {
+    print_color \$BLUE "Restarting Syncthing..."
+    if [[ "\$OSTYPE" == "darwin"* ]]; then
+        launchctl stop com.github.syncthing.syncthing
+        launchctl start com.github.syncthing.syncthing
+    elif [[ "\$OSTYPE" == "linux-gnu"* ]]; then
+        if [ "\$(id -u)" -eq 0 ]; then
+            systemctl restart syncthing.service
+        else
+            systemctl --user restart syncthing.service
+        fi
+    else
+        print_color \$YELLOW "Please restart Syncthing manually or reboot your system."
+    fi
+}
+
+# Main execution
+update_known_devices
+restart_syncthing
+
+print_color \$GREEN "Syncthing configuration updated and service restarted."
+print_color \$YELLOW "Your devices should now be connected. Check Syncthing logs for any issues."
+EOL
+chmod +x "$HOME_DIR/updateDevices.sh"
+    print_color $BLUE "Update script created: $HOME_DIR/updateDevices.sh"
+}
 
 # Main execution
 clear 
@@ -285,21 +360,46 @@ install_syncthing
 configure_syncthing
 setup_autostart
 sync_known_devices
+create_update_script
+save_config_info
 
 clear 
 
+DEVICE_ID=$(cat $DEVICE_ID_FILE)
+DEVICE_KEY="$DEVICE_ID:$DEVICE_NAME"
+
 print_color $GREEN "\n✅ Syncthing setup complete!"
 print_color $BLUE "\n📁 Your sync directory is: $SYNC_DIR"
-print_color $BLUE "🆔 Your device ID is: $(cat $DEVICE_ID_FILE)"
+print_color $BLUE "🆔 Your device ID is: $DEVICE_ID"
+print_color $BLUE "🔑 Your device key is: $DEVICE_KEY"
 print_color $BLUE "📝 Known devices file: $KNOWN_DEVICES_FILE"
 
 print_color $YELLOW "\n📌 Next steps:"
 echo "1. Copy this script to your other devices."
 echo "2. Run the script on each device you want to sync."
 echo "3. After running on all devices, edit $KNOWN_DEVICES_FILE on each device:"
-echo "   - Add the Device IDs and names of all other devices."
-echo "   - Format: DEVICE_ID:DEVICE_NAME (one per line)"
-echo "4. Restart Syncthing on all devices to apply changes."
+echo "   - Add the following line to the $KNOWN_DEVICES_FILE on all OTHER devices:"
+print_color $GREEN "     $DEVICE_KEY"
+echo "   - Repeat this process for each device, adding its key to all other devices."
+echo "4. Run the update script on all devices to apply changes:"
+print_color $GREEN "     $HOME_DIR/updateDevices.sh"
 
-print_color $GREEN "\nSyncthing is now running. Your files will sync automatically."
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "   - Alternatively, run: launchctl stop com.github.syncthing.syncthing && launchctl start com.github.syncthing.syncthing"
+elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    if [ "$CURRENT_USER" = "root" ]; then
+        echo "   - Alternatively, run: systemctl restart syncthing.service"
+    else
+        echo "   - Alternatively, run: systemctl --user restart syncthing.service"
+    fi
+else
+    echo "   - Alternatively, restart Syncthing manually or reboot your system."
+fi
+
+print_color $GREEN "\nSyncthing is now running. Your files will sync automatically once you've added all device keys and run the update script."
 print_color $YELLOW "For more information, visit: https://docs.syncthing.net/"
+
+# Save the device key to a file for easy access
+echo "$DEVICE_KEY" > "$HOME_DIR/.syncthing_device_key"
+print_color $BLUE "\nYour device key has been saved to: $HOME_DIR/.syncthing_device_key"
+print_color $YELLOW "You can easily copy it from this file when setting up other devices."
